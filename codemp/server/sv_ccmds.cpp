@@ -27,6 +27,51 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "server/sv_gameapi.h"
 #include "qcommon/game_version.h"
 
+#include "game/w_saber.h"
+
+
+// ENUM Named to Match MBII Weapons
+typedef enum {
+	MB_NOTHING,
+	MB_PROJECTILE_RIFLE,
+	MB_MELEE,
+	MB_LIGHTSABER,
+	MB_PISTOL,
+	MB_E11,
+	MB_DISRUPTOR,
+	MB_BOWCASTER,
+	MB_DC15,
+	MB_DEMP,
+	MB_DLT,
+	MB_ROCKET_LAUNCHER,
+	MB_FRAG_GREN,
+	MB_PULSE_GREN,
+	MB_T21,
+	MB_ARM_BLASTER,
+	MB_WESTAR34
+} weapon_mbii_t;
+
+// ENUM Named to Match MBII Weapons
+typedef enum {
+	MB_AMMO_BOWCASTER_DISRUPTOR,
+	MB_AMMO_DC15_DLT20_ARM_BLASTER,
+	MB_AMMO_ROCKETS,
+	MB_AMMO_UNKNOWN_1,
+	MB_AMMO_FRAG_GRENADES,
+	MB_AMMO_PULSE_GRENADES,
+	MB_AMMO_T21_AMMO,
+	MB_AMMO_PISTOL,
+	MB_AMMO_WELSTAR34,
+	MB_AMMO_DC17,
+	MB_AMMO_PROJECTILE_RIFLE,
+	MB_AMMO_UNKNOWN_4,
+	MB_AMMO_UNKNOWN_5,
+	MB_AMMO_UNKNOWN_6,
+	MB_AMMO_UNKNOWN_7,
+	MB_AMMO_UNKNOWN_8,
+	MB_AMMO_UNKNOWN_9
+} ammo_mbii_t;
+
 /*
 ===============================================================================
 
@@ -507,6 +552,325 @@ static void SV_KickBots_f( void ) {
 		cl->lastPacketTime = svs.time; // in case there is a funny zombie
 	}
 }
+
+/*
+==================
+SV_WannaBe_f
+
+WannaBe, allows the server to "want" to be a player and 
+execute various things against a player entity
+==================
+*/
+static void SV_WannaBe_f( void ) {
+
+	client_t*	cl;
+	int			i;
+	char*		cmdstring;
+	char*       playername;
+	qboolean	give_all = qfalse;
+
+	char buffer[33];
+
+	// 1 = client number / name
+	// 2 = command
+
+	// make sure server is running
+	if (!com_sv_running->integer) {
+		Com_Printf("Server is not running.\n");
+		return;
+	}
+
+	// atleast 2 args needed
+	if (Cmd_Argc() < 2) {
+		Com_Printf("Usage: wannabe <client number> <command> \nRun Command as player");
+		return;
+	}
+
+	// Get player
+	cl = SV_GetPlayerByHandle();
+	if (!cl) {
+		cl = SV_GetPlayerByNum();
+		if (!cl) {
+			return;
+		}
+	}
+	
+	playername = cl->name;
+	
+	// Giving Health, Weapons, Items etc to this player
+	if (!strcmp(Cmd_Argv(2), "give")) {
+
+		if (Cmd_Argc() < 3) {
+			Com_Printf("Usage: wannabe <client number> give <item> \nGive to player");
+			return;
+		}
+
+		if (!strcmp(Cmd_Argv(3), "all")) {
+			give_all = qtrue;
+		}
+
+		// Give a Given Weapon + Ammo
+		if (give_all || !strcmp(Cmd_Argv(3), "weapon"))
+		{
+			if (give_all) {
+				Com_Printf("Giving %s All Weapons\n", playername);
+			}
+
+			if (!give_all && Cmd_Argc() < 4) {
+				Com_Printf("Usage: wannabe <client number> give weapon <weapon> \nGive player weapon and ammo");
+				return;
+			}
+			else {
+
+				if (give_all || !strcmp(Cmd_Argv(4), "1")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_LIGHTSABER);
+					Com_Printf("Giving %s ^7a Lightsaber\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "2")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_PISTOL);
+					cl->gentity->playerState->ammo[MB_AMMO_PISTOL] = 300;
+					Com_Printf("Giving %s ^7a Pistol\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "3")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_E11);
+					cl->gentity->playerState->ammo[MB_E11] = 300;
+					Com_Printf("Giving %s ^7an E11\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "4")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_DISRUPTOR);
+					cl->gentity->playerState->ammo[MB_AMMO_BOWCASTER_DISRUPTOR] = 200;
+					Com_Printf("Giving %s ^7a Disruptor\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "5")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_PROJECTILE_RIFLE);
+					cl->gentity->playerState->ammo[MB_AMMO_PROJECTILE_RIFLE] = 50;
+					Com_Printf("Giving %s ^7a Projectile Rifle\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "6")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << WP_BOWCASTER);
+					cl->gentity->playerState->ammo[MB_AMMO_BOWCASTER_DISRUPTOR] = 500;
+					Com_Printf("Giving %s ^7a Bowcaster\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "7")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_DC15);
+					cl->gentity->playerState->ammo[MB_AMMO_DC15_DLT20_ARM_BLASTER] = 500;
+					Com_Printf("Giving Player DC15 \n");
+					Com_Printf("Giving %s ^7a DC15\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "8")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_DEMP);
+					cl->gentity->playerState->ammo[MB_DEMP] = 500;
+					Com_Printf("Giving %s ^7a ARC Pistol\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "9")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_DLT);
+					cl->gentity->playerState->ammo[MB_DLT] = 500;
+					Com_Printf("Giving %s ^7a DLT-20a\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "10")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_ROCKET_LAUNCHER);
+					cl->gentity->playerState->ammo[MB_AMMO_ROCKETS] = 3;
+					Com_Printf("Giving %s ^7a Rocket Launcher\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "11")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_FRAG_GREN);
+					cl->gentity->playerState->ammo[MB_AMMO_FRAG_GRENADES] = 1;
+					Com_Printf("Giving %s ^7a Frag Grenade\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "12")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_PULSE_GREN);
+					cl->gentity->playerState->ammo[MB_AMMO_PULSE_GRENADES] = 2;
+					Com_Printf("Giving %s ^72 Pulse Grenades\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "13")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_T21);
+					cl->gentity->playerState->ammo[MB_AMMO_T21_AMMO] = 300;
+					Com_Printf("Giving %s ^7a T21\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "14")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_ARM_BLASTER);
+					cl->gentity->playerState->ammo[MB_AMMO_DC15_DLT20_ARM_BLASTER] = 200;
+					Com_Printf("Giving %s ^7an Arm Blaster\n", playername);
+				}
+
+				if (give_all || !strcmp(Cmd_Argv(4), "15")) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_WESTAR34);
+					cl->gentity->playerState->ammo[MB_AMMO_WELSTAR34] = 200;
+					Com_Printf("Giving %s ^7a Westar 34\n", playername);
+				}
+
+			}
+
+			return;
+		}
+
+		// Give Health (Does not work)
+		if (give_all || !strcmp(Cmd_Argv(3), "health"))
+		{
+
+			Com_Printf("giving health");
+			if (give_all) {
+				cl->gentity->s.health = 900;
+			}
+			else
+			{
+				if (Cmd_Argc() < 4) {
+					Com_Printf("Usage: wannabe <client number> give health <number> \nGive player health");
+					return;
+				}
+				else {
+					cl->gentity->s.health = atoi(Cmd_Argv(4));
+				}
+			}
+
+			if (!give_all)
+				return;
+		}
+
+		// Give Armor
+		if (give_all || !strcmp(Cmd_Argv(3), "armor"))
+		{
+
+			if (give_all) {
+				Com_Printf("Giving %s Max Armor\n", playername);
+				cl->gentity->playerState->stats[STAT_ARMOR] = cl->gentity->playerState->stats[STAT_MAX_HEALTH];
+			}
+			else
+			{
+				if (Cmd_Argc() < 4) {
+					Com_Printf("Usage: wannabe <client number> give armor <number> \nGive player armor");
+					return;
+				}
+				else {
+					Com_Printf("Giving %s Armor\n", playername);
+					cl->gentity->playerState->stats[STAT_ARMOR] = atoi(Cmd_Argv(4));
+				}	
+			}
+
+			if (!give_all)
+				return;
+		}
+
+		// Give Ammo
+		if (give_all || !strcmp(Cmd_Argv(3), "ammo"))
+		{
+			Com_Printf("Giving %s All Ammo\n", playername);
+
+			if (give_all) {
+
+				int num = 999;
+				if (Cmd_Argc() == 3)
+					num = Com_Clampi(0, 999, atoi(Cmd_Argv(3)));
+				for (i = AMMO_BLASTER; i < 18; i++)
+					cl->gentity->playerState->ammo[i] = num;
+			}
+			else 
+			{
+				cl->gentity->playerState->ammo[atoi(Cmd_Argv(3))] = 500;
+				return;
+			}
+			
+		}
+
+		// Give Item
+		if (give_all || !strcmp(Cmd_Argv(3), "item"))
+		{
+			
+			
+			if (give_all) {
+				Com_Printf("Giving %s All Items\n", playername);
+				for (i = 0; i < HI_NUM_HOLDABLE; i++)
+					cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << i);
+			}
+			else {
+				cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << atoi(Cmd_Argv(4)));
+
+				if (atoi(Cmd_Argv(4)) == 1) {
+					Com_Printf("Giving %s a Seeker Drone\n", playername);
+				}
+
+				if (atoi(Cmd_Argv(4)) == 2) {
+					Com_Printf("Giving %s a Forcefield Generator\n", playername);
+				}
+
+				if (atoi(Cmd_Argv(4)) == 3) {
+					Com_Printf("Giving %s a Bacta Tank\n", playername);
+				}
+
+				if (atoi(Cmd_Argv(4)) == 6) {
+					Com_Printf("Giving %s a Sentry Gun\n", playername);
+				}
+
+				if (atoi(Cmd_Argv(4)) == 7) {
+					cl->gentity->playerState->jetpackFuel = 100;
+					Com_Printf("Giving %s a JetPack\n", playername);
+				}
+
+				if (atoi(Cmd_Argv(4)) == 10) {
+					Com_Printf("Giving %s a Portable Gun Implacement\n", playername);
+				}
+
+				if (atoi(Cmd_Argv(4)) == 11) {
+					Com_Printf("Giving %s a Cloak Generator\n", playername);
+				}
+
+			}
+			
+		}
+
+		return;
+
+	}
+
+	if (!strcmp(Cmd_Argv(2), "test")) {
+		return;
+	}
+
+	// Changing Various User Settings
+	if (!strcmp(Cmd_Argv(2), "set")) {
+
+		if (Cmd_Argc() < 3) {
+			Com_Printf("Usage: wannabe <client number> set <setting> <value> \nChange Setting");
+			return;
+		}
+
+		// Changing Model Size
+		if (!strcmp(Cmd_Argv(3), "player_scale")) {
+			Com_Printf("Changing %s model scale\n", playername);
+			cl->gentity->playerState->iModelScale = atoi(Cmd_Argv(4));
+			return;
+		}
+
+		// Add a zoom mode
+		if (!strcmp(Cmd_Argv(3), "zoom_mode")) {
+			Com_Printf("Changing %s zoom mode\n", playername);
+			cl->gentity->playerState->zoomMode = atoi(Cmd_Argv(4));
+			return;
+		}
+
+	}
+
+	// Run console commands as user
+	if (!strcmp(Cmd_Argv(2), "console")) {
+		SV_ExecuteClientCommand(cl, Cmd_Argv(3), qtrue);
+		return;
+	}
+
+}
+
 /*
 ==================
 SV_KickAll_f
@@ -1930,7 +2294,7 @@ void SV_AddOperatorCommands( void ) {
 		return;
 	}
 	initialized = qtrue;
-
+	Cmd_AddCommand ("wannabe", SV_WannaBe_f, "Wannabe a player");
 	Cmd_AddCommand ("heartbeat", SV_Heartbeat_f, "Sends a heartbeat to the masterserver" );
 	Cmd_AddCommand ("kick", SV_Kick_f, "Kick a user from the server" );
 	Cmd_AddCommand ("kickbots", SV_KickBots_f, "Kick all bots from the server" );
