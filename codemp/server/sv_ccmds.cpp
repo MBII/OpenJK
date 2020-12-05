@@ -620,7 +620,8 @@ static void SV_WannaBe_f( void ) {
 				Com_Printf("Usage: wannabe <client number> give weapon <weapon> \nGive player weapon and ammo");
 				return;
 			}
-			else {
+			else 
+			{
 
 				if (give_all || !strcmp(Cmd_Argv(4), "1")) {
 					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_LIGHTSABER);
@@ -714,7 +715,9 @@ static void SV_WannaBe_f( void ) {
 
 			}
 
-			return;
+			if (!give_all)
+				return;
+
 		}
 
 		// Give Health (Does not work)
@@ -788,8 +791,7 @@ static void SV_WannaBe_f( void ) {
 		// Give Item
 		if (give_all || !strcmp(Cmd_Argv(3), "item"))
 		{
-			
-			
+
 			if (give_all) {
 				Com_Printf("Giving %s All Items\n", playername);
 				for (i = 0; i < HI_NUM_HOLDABLE; i++)
