@@ -2088,6 +2088,75 @@ static void SV_ForceCvar_f(void) {
 
 /*
 ==================
+SV_Wannacheat
+Enable / Disable Cheats Without Dev Map
+==================
+*/
+
+static void SV_WannaCheat(void) {
+	client_t* cl;
+
+	// make sure server is running
+	if (!com_sv_running->integer) {
+		Com_Printf("Server is not running.\n");
+		return;
+	}
+
+	if (Cmd_Argc() != 2) {
+		Com_Printf("Usage: wannacheat <1|0> \nEnable or Disable sv_cheats\n");
+		return;
+	}
+
+
+	if (!strcmp(Cmd_Argv(1), "1")) {
+		Com_Printf("Cheating Enabled\n");
+	}
+	else {
+		Com_Printf("Cheating Disabled\n");
+	}
+
+	Cvar_Set("sv_cheats", Cmd_Argv(1));
+	GVM_RunFrame(sv.time);
+}
+
+/*
+==================
+SV_Wannabe
+Execute commands as a client
+Runs with Cheats enabled
+==================
+*/
+static void SV_Wannabe(void) {
+	client_t* cl;
+
+	// make sure server is running
+	if (!com_sv_running->integer) {
+		Com_Printf("Server is not running.\n");
+		return;
+	}
+
+	if (Cmd_Argc() != 3) {
+		Com_Printf("Usage: wannabe <client> <command> \nExecute command as a given client\n");
+		return;
+	}
+
+	cl = SV_GetPlayerByHandle();
+	if (!cl) {
+		cl = SV_GetPlayerByNum();
+		if (!cl) {
+			return;
+		}
+	}
+
+	Cvar_Set("sv_cheats", "1");
+	GVM_RunFrame(sv.time);
+	SV_ExecuteClientCommand(cl, Cmd_Argv(2), qtrue);
+	Cvar_Set("sv_cheats", "0");
+	GVM_RunFrame(sv.time);
+}
+
+/*
+==================
 Called when a user runs spin
 ==================
 */
@@ -2293,12 +2362,12 @@ void SV_Spin(client_t* cl) {
 			valid_spin = qtrue;
 		}
 
-		// WIN 1000 JETPACK FUEL
+		// WIN Jet Fuel Refill
 		if ((unsigned)(rando - 40) < (44 - 40)) {
 			if (mb_class == MB_CLASS_MANDO) { // Only Mandos
 				cl->gentity->playerState->jetpackFuel = 999;
-				Com_Printf("Giving %s^7 999 Jetpack Fuel\n", playername);
-				response = "You win infinite Jetpack Fuel";
+				Com_Printf("Giving %s^7 Jet Fuel Refill\n", playername);
+				response = "You win Jetpack Fuel Refill";
 				valid_spin = qtrue;
 			}
 		}
@@ -2315,7 +2384,7 @@ void SV_Spin(client_t* cl) {
 		if ((unsigned)(rando - 47) < (50 - 47)) {
 			cl->gentity->playerState->iModelScale = 150;
 			Com_Printf("Making %s^7 Big\n", playername);
-			response = "You ate a odd looking mushroom!";
+			response = "Have you put on some weight?";
 			valid_spin = qtrue;
 		}
 
@@ -2504,6 +2573,8 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand ("sv_exceptdel", SV_ExceptDel_f, "Removes a ban exception" );
 	Cmd_AddCommand ("sv_flushbans", SV_FlushBans_f, "Removes all bans and exceptions" );
 	Cmd_AddCommand ("forcecvar", SV_ForceCvar_f);
+	Cmd_AddCommand ("wannacheat", SV_WannaCheat);
+	Cmd_AddCommand ("wannabe", SV_Wannabe);
 }
 
 /*
