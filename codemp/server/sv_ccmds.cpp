@@ -2349,8 +2349,8 @@ void SV_Spin(client_t* cl) {
 		// WIN 250 ARMOR
 		if ((unsigned)(rando - 35) < (38 - 35)) {
 			cl->gentity->playerState->stats[STAT_ARMOR] = 250;
-			Com_Printf("Giving %s^7 200 Armor\n", playername);
-			response = "You win 200 Armor";
+			Com_Printf("Giving %s^7 250 Armor\n", playername);
+			response = "You win 250 Armor";
 			valid_spin = qtrue;
 		}
 
