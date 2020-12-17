@@ -1,3 +1,14 @@
+# This Fork
+
+This fork is geared towards being used for MBII and for creating MBII Servers. It has a number of additional Serverside changes. 
+
+## Spin Mode
+
+This dedengine has spin mode available. any client doing `!spin` in the chat will be given a random perk. 
+The percentages and chances are hard coded into sv_ccmds.
+
+**Perks include:** Weapons + Ammo, Big Model, Small Model, Items, Vehicles
+
 # OpenJK
 
 OpenJK is an effort by the JACoders group to maintain and improve the game engines on which the Jedi Academy (JA) and Jedi Outcast (JO) games run on, while maintaining *full backwards compatibility* with the existing games. *This project does not attempt to rebalance or otherwise modify core gameplay*.
