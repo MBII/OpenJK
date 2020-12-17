@@ -35,6 +35,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "server/sv_gameapi.h"
 
+
 static void SV_CloseDownload( client_t *cl );
 
 /*
@@ -1269,6 +1270,7 @@ Also called by bot code
 void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 	ucmd_t	*u;
 	qboolean bProcessed = qfalse;
+	char* cp;
 
 	Cmd_TokenizeString( s );
 
@@ -1282,6 +1284,19 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 	}
 
 	if (clientOK) {
+
+		cp = Cmd_Args();
+		cp = strtok(cp, " ");
+
+		// run spin mode, don't display the text
+		if (Q_stricmp("!spin", cp) == 0)
+		{
+	
+
+			SV_Spin(cl);
+			return;
+		}
+
 		// pass unknown strings to the game
 		if (!u->name && sv.state == SS_GAME && (cl->state == CS_ACTIVE || cl->state == CS_PRIMED)) {
 			// strip \r \n and ;
@@ -1294,6 +1309,10 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 			}
 			GVM_ClientCommand( cl - svs.clients );
 		}
+
+
+
+
 	}
 	else if (!bProcessed)
 		Com_DPrintf( "client text ignored for %s: %s\n", cl->name, Cmd_Argv(0) );

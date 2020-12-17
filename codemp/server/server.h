@@ -231,6 +231,7 @@ typedef struct serverBan_s {
 extern	serverStatic_t	svs;				// persistant server info across maps
 extern	server_t		sv;					// cleared each map
 
+
 //FIXME: dedi server probably can't have this..
 extern	refexport_t		*re;					// interface to refresh .dll
 
@@ -400,6 +401,12 @@ void		SV_BotFreeClient( int clientNum );
 void		SV_BotInitCvars(void);
 int			SV_BotGetSnapshotEntity( int client, int ent );
 int			SV_BotGetConsoleMessage( int client, char *buf, int size );
+
+
+//
+// sv_ccmds.c
+//
+void SV_Spin(client_t* cl);
 
 void *Bot_GetMemoryGame(int size);
 void Bot_FreeMemoryGame(void *ptr);
