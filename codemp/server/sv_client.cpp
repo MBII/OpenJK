@@ -574,6 +574,8 @@ void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd ) {
 
 	client->lastUserInfoChange = 0; //reset the delay
 	client->lastUserInfoCount = 0; //reset the count
+	
+	client->gentity->playerState->userInt1 = 0; //reset spin delay
 
 	client->deltaMessage = -1;
 	client->nextSnapshotTime = svs.time;	// generate a snapshot immediately
@@ -1240,6 +1242,7 @@ static void SV_UpdateUserinfo_f( client_t *cl ) {
 	SV_UserinfoChanged( cl );
 	// call prog code to allow overrides
 	GVM_ClientUserinfoChanged( cl - svs.clients );
+
 }
 
 typedef struct ucmd_s {
@@ -1291,8 +1294,6 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 		// run spin mode, don't display the text
 		if (Q_stricmp("!spin", cp) == 0)
 		{
-	
-
 			SV_Spin(cl);
 			return;
 		}
