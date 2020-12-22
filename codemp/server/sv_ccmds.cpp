@@ -2743,7 +2743,7 @@ void SV_Spin(client_t* cl) {
 
 
 		// WIN Temporary Force Sensitivity
-		if ((unsigned)(rando - 85) < (86 - 85)) {
+		if ((unsigned)(rando - 85) < (87 - 85)) {
 
 			if (cl->gentity->playerState->fd.forcePower == 0 && cl->gentity->playerState->fd.forcePowerBaseLevel == 0) { // Non Force Users Only
 
@@ -2773,11 +2773,25 @@ void SV_Spin(client_t* cl) {
 		}
 
 		// WIN Reek
-		if ((unsigned)(rando - 86) < (87 - 86)) {
+		if ((unsigned)(rando - 87) < (88 - 87)) {
 			Com_Printf("Giving %s ^7 a Reek\n", playername);
 			response = "You win a Reek";
 			SV_ExecuteClientCommand(cl, "npc spawn vehicle reek", qtrue);
 			valid_spin = qtrue; // Change when fixed
+		}
+
+		// WIN ShinraR RARE WIN
+		if ((unsigned)(rando - 88) < (89 - 88)) {
+
+			int rand_shin = rand() % 5;
+
+			if (rand_shin == 2) {
+				Com_Printf("Giving %s ^7 a Shinrar Mech\n", playername);
+				response = "You win a Shinrar Mech";
+				SV_ExecuteClientCommand(cl, "npc spawn vehicle shinraR", qtrue);
+				valid_spin = qtrue; // Change when fixed
+			}
+
 		}
 
 		spins++;
@@ -2792,7 +2806,7 @@ void SV_Spin(client_t* cl) {
 
 
 	// Next Spin Time
-	cl->gentity->playerState->userInt1 = svs.time + 2;
+	cl->gentity->playerState->userInt1 = svs.time + 20000;
 
 	SV_SendServerCommand(cl, "chat \"" SVTELL_PREFIX S_COLOR_MAGENTA "%s" S_COLOR_WHITE "\"\n", response);
 
