@@ -28,11 +28,24 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/game_version.h"
 #include "game/bg_weapons.h"
 
+//clientInfo_t* client = NULL;
+
 /*
 ===============================================================================
 MBII Specific Enums
 ===============================================================================
 */
+
+typedef enum {
+	MB_SS_NONE,
+	MB_SS_BLUE,
+	MB_SS_YELLOW,
+	MB_SS_RED,
+	MB_SS_PURPLE,
+	MB_SS_CYAN,
+	MB_SS_DUEL,
+	MB_SS_STAFF
+} saber_style_mbii_t;
 
 // MBII FORCE POWERS
 
@@ -84,7 +97,7 @@ typedef enum {
 	MB_DISRUPTOR,
 	MB_BOWCASTER,
 	MB_DC15,
-	MB_DEMP,
+	MB_DC17_PISTOL,
 	MB_DLT,
 	MB_ROCKET_LAUNCHER,
 	MB_FRAG_GREN,
@@ -105,7 +118,7 @@ typedef enum {
 	MB_AMMO_T21_AMMO,
 	MB_AMMO_PISTOL,
 	MB_AMMO_WELSTAR34,
-	MB_AMMO_DC17_DEMP,
+	MB_AMMO_DC17_PISTOL,
 	MB_AMMO_PROJECTILE_RIFLE,
 	MB_AMMO_UNKNOWN_4,
 	MB_AMMO_UNKNOWN_5,
@@ -2105,42 +2118,35 @@ static void SV_ForceCvar_f(void) {
 	SV_ForceCvar_f_helper(cl);
 }
 
-static void SV_Wannaswap(void) {
+static void SV_Wannatest(void) {
 
-	client_t* cl1;
-	client_t* cl2;
+	client_t* cl;
 
-	cl1 = &svs.clients[0];
-	cl2 = &svs.clients[1];
-
-	
-	int i = 0;
-
-	for (int i = 0; i < 25; i++) {
-		cl1->gentity->playerState->stats[i] = cl2->gentity->playerState->stats[i];
+	// make sure server is running
+	if (!com_sv_running->integer) {
+		Com_Printf("Server is not running.\n");
+		return;
 	}
 
-	i = 0;
-
-	for (int i = 0; i < 25; i++) {
-		cl1->gentity->playerState->powerups[i] = cl2->gentity->playerState->stats[i];
+	cl = SV_GetPlayerByHandle();
+	if (!cl) {
+		cl = SV_GetPlayerByNum();
+		if (!cl) {
+			return;
+		}
 	}
 
-	cl1->gentity->playerState->fd = cl2->gentity->playerState->fd;
+	char* playername;
+	playername = cl->name;
+	char* response;
 
-	i = 0;
-	for (int i = 0; i < 25; i++) {
-		cl1->gentity->playerState->ammo[i] = cl2->gentity->playerState->ammo[i];
-	}
+	Com_Printf("Giving %s ^7 a Swoop Bike\n", playername);
+	response = "You win a Swoop Bike";
 
-	i = 0;
-	for (int i = 0; i < 25; i++) {
-		cl1->gentity->behaviorSet[i] = cl2->gentity->behaviorSet[i];
-	}
 
-	cl1->gentity->ghoul2 = cl2->gentity->ghoul2;
-	cl1->gentity->s = cl2->gentity->s;
 
+
+	SV_SendServerCommand(cl, "chat \"" SVTELL_PREFIX S_COLOR_MAGENTA "%s" S_COLOR_WHITE "\"\n", response);
 }
 
 
@@ -2169,7 +2175,6 @@ Enable / Disable Cheats Without Dev Map
 */
 
 static void SV_WannaCheat(void) {
-	client_t* cl;
 
 	// make sure server is running
 	if (!com_sv_running->integer) {
@@ -2256,7 +2261,7 @@ void SV_Spin(client_t* cl) {
 	playername = cl->name;
 
 	SV_UserinfoChanged(cl);
-	
+
 	// Player is dead / spectating
 	if (cl->gentity->playerState->persistant[PERS_TEAM] == 3) {
 		SV_SendServerCommand(cl, "chat \"" SVTELL_PREFIX S_COLOR_RED "%s" S_COLOR_WHITE "\"\n", "You must be alive to spin");
@@ -2298,11 +2303,14 @@ void SV_Spin(client_t* cl) {
 	valid_spin = qfalse;
 	spins = 0;
 
-	// New Random Seed
-	srand(time(NULL));
+	cl->gentity->playerState->gravity = 0;
+
+	// New Random Seed, time + Client Num
+	srand(time(NULL) + cl->gentity->s.clientNum);
 
 	do {
 
+		// 0 - 100 Number Generated
 		rando = rand() % 100 + 1;
 
 		// WIN BOWCASTER
@@ -2335,9 +2343,24 @@ void SV_Spin(client_t* cl) {
 		if ((unsigned)(rando - 8) < (12 - 8)) {
 			if (mb_class != MB_CLASS_JEDI && mb_class != MB_CLASS_SITH) { // Exclude Jedi and Sith
 				if (!(cl->gentity->playerState->stats[STAT_WEAPONS] & (1 << MB_LIGHTSABER))) {
+
+					char* saberstyle_name = "";
+
+					int saberstyles[5] = { MB_SS_BLUE, MB_SS_YELLOW, MB_SS_RED, MB_SS_PURPLE, MB_SS_CYAN };
+					int rand_saberstyle = saberstyles[rand() % 5];
+					cl->gentity->playerState->fd.saberAnimLevel = rand_saberstyle;
 					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_LIGHTSABER);
-					Com_Printf("Giving %s^7 a Lightsaber\n", playername);
-					response = "You win a Lightsaber";
+					cl->gentity->playerState->fd.saberAnimLevel = rand_saberstyle;
+
+					if (rand_saberstyle == MB_SS_BLUE) saberstyle_name = "Blue";
+					if (rand_saberstyle == MB_SS_YELLOW) saberstyle_name = "Yellow";
+					if (rand_saberstyle == MB_SS_RED) saberstyle_name = "Red";
+					if (rand_saberstyle == MB_SS_PURPLE) saberstyle_name = "Purple";
+					if (rand_saberstyle == MB_SS_CYAN) saberstyle_name = "Cyan";
+
+					Com_Printf("Giving %s^7 a Lightsaber with %s style\n", playername, saberstyle_name);
+					Com_sprintf(tmp, sizeof(tmp), "You win a Lightsaber with %s style", saberstyle_name);
+					response = tmp;
 					valid_spin = qtrue;
 				}
 			}
@@ -2408,14 +2431,14 @@ void SV_Spin(client_t* cl) {
 			}
 		}
 
-		// WIN DEMP PISTOL 
+		// WIN DC17 PISTOL 
 		if ((unsigned)(rando - 30) < (32 - 30)) {
 			if (mb_class != MB_CLASS_ARC) { // Exclude Arcs
-				if (!(cl->gentity->playerState->stats[STAT_WEAPONS] & (1 << MB_DEMP))) {
-					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_DEMP);
-					cl->gentity->playerState->ammo[MB_AMMO_DC17_DEMP] = 500;
-					Com_Printf("Giving %s^7 an Arc Pistol\n", playername);
-					response = "You win an Arc Pistol";
+				if (!(cl->gentity->playerState->stats[STAT_WEAPONS] & (1 << MB_DC17_PISTOL))) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_DC17_PISTOL);
+					cl->gentity->playerState->ammo[MB_AMMO_DC17_PISTOL] = 500;
+					Com_Printf("Giving %s^7 an DC17 Pistol\n", playername);
+					response = "You win a DC17 Pistol";
 					valid_spin = qtrue;
 				}
 			}
@@ -2449,18 +2472,22 @@ void SV_Spin(client_t* cl) {
 
 		// WIN 250 ARMOR
 		if ((unsigned)(rando - 35) < (38 - 35)) {
-			cl->gentity->playerState->stats[STAT_ARMOR] = 250;
-			Com_Printf("Giving %s^7 250 Armor\n", playername);
-			response = "You win 250 Armor";
-			valid_spin = qtrue;
+			if (cl->gentity->playerState->stats[STAT_ARMOR] < 250) {
+				cl->gentity->playerState->stats[STAT_ARMOR] = 250;
+				Com_Printf("Giving %s^7 250 Armor\n", playername);
+				response = "You win 250 Armor";
+				valid_spin = qtrue;
+			}
 		}
 
 		// WIN 500 ARMOR
 		if ((unsigned)(rando - 38) < (40 - 38)) {
-			cl->gentity->playerState->stats[STAT_ARMOR] = 500;
-			Com_Printf("Giving %s^7 500 Armor\n", playername);
-			response = "You win 500 Armor";
-			valid_spin = qtrue;
+			if (cl->gentity->playerState->stats[STAT_ARMOR] < 250) {
+				cl->gentity->playerState->stats[STAT_ARMOR] = 500;
+				Com_Printf("Giving %s^7 500 Armor\n", playername);
+				response = "You win 500 Armor";
+				valid_spin = qtrue;
+			}
 		}
 
 		// WIN Jet Fuel Refill
@@ -2475,15 +2502,17 @@ void SV_Spin(client_t* cl) {
 
 		// WIN GO SMALL
 		if ((unsigned)(rando - 44) < (47 - 44)) {
-			cl->gentity->playerState->iModelScale = 50;
-			Com_Printf("Making %s^7 Small\n", playername);
-			response = "Did you lose some weight?";
-			valid_spin = qtrue;
+			if (cl->gentity->playerState->iModelScale != 50 && cl->gentity->playerState->iModelScale != 150) { //Only if normal size
+				cl->gentity->playerState->iModelScale = 50;
+				Com_Printf("Making %s^7 Small\n", playername);
+				response = "Did you lose some weight?";
+				valid_spin = qtrue;
+			}
 		}
 
 		// WIN GO BIG
 		if ((unsigned)(rando - 47) < (50 - 47)) {
-			if (cl->gentity->playerState->iModelScale >= 100) {
+			if (cl->gentity->playerState->iModelScale != 50 && cl->gentity->playerState->iModelScale != 150) { //Only if normal size
 				cl->gentity->playerState->iModelScale = 150;
 				Com_Printf("Making %s^7 Big\n", playername);
 				response = "Have you put on some weight?";
@@ -2506,66 +2535,120 @@ void SV_Spin(client_t* cl) {
 
 		// WIN CLOAK GENERATOR
 		if ((unsigned)(rando - 55) < (57 - 55)) {
-			cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_CLOAK);
-			cl->gentity->playerState->cloakFuel = 100;
-			Com_Printf("Giving %s^7 a Cloak Generator\n", playername);
-			response = "You win a Cloak Generator ";
-			valid_spin = qtrue;
+			if (!(cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] & (1 << HI_CLOAK))) {
+				cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_CLOAK);
+				cl->gentity->playerState->cloakFuel = 100;
+				Com_Printf("Giving %s^7 a Cloak Generator\n", playername);
+				response = "You win a Cloak Generator ";
+				valid_spin = qtrue;
+			}
 		}
 
 		// WIN Gun Implacement
 		if ((unsigned)(rando - 57) < (59 - 57)) {
-			cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_EWEB);
-			Com_Printf("Giving %s^7 an EWEB Gun Emplacement\n", playername);
-			response = "You win an EWEB Gun Emplacement";
-			valid_spin = qtrue;
+			if (!(cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] & (1 << HI_EWEB))) {
+				cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_EWEB);
+				Com_Printf("Giving %s^7 an EWEB Gun Emplacement\n", playername);
+				response = "You win an EWEB Gun Emplacement";
+				valid_spin = qtrue;
+			}
 		}
 
 		// WIN Sentry Gun
 		if ((unsigned)(rando - 59) < (63 - 59)) {
-			cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_SENTRY_GUN);
-			Com_Printf("Giving %s^7 a Automated Sentry Gun\n", playername);
-			response = "You win an Automated Sentry Gun";
-			valid_spin = qtrue;
+			if (!(cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] & (1 << HI_SENTRY_GUN))) {
+				cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_SENTRY_GUN);
+				Com_Printf("Giving %s^7 a Automated Sentry Gun\n", playername);
+				response = "You win an Automated Sentry Gun";
+				valid_spin = qtrue;
+			}
 		}
 		
 		// WIN Seeker Droid
 		if ((unsigned)(rando - 63) < (66 - 63)) {
-			cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_SEEKER);
-			Com_Printf("Giving %s ^7 a Seeker Droid\n", playername);
-			response = "You win a Seeker Droid";
-			valid_spin = qtrue;
+			if (!(cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] & (1 << HI_SEEKER))) {
+				cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_SEEKER);
+				Com_Printf("Giving %s ^7 a Seeker Droid\n", playername);
+				response = "You win a Seeker Droid";
+				valid_spin = qtrue;
+			}
 		}
 
-		// WIN Seeker Droid
+		// WIN Bacta tank
 		if ((unsigned)(rando - 66) < (68 - 66)) {
-			cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_MEDPAC_BIG);
-			Com_Printf("Giving %s ^7 a Tank of Bacta\n", playername);
-			response = "You win a Tank of Bacta";
-			valid_spin = qtrue;
+			if (!(cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] & (1 << HI_MEDPAC_BIG))) {
+				cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_MEDPAC_BIG);
+				Com_Printf("Giving %s ^7 a Tank of Bacta\n", playername);
+				response = "You win a Tank of Bacta";
+				valid_spin = qtrue;
+			}
 		}
 
 		// WIN Forcefield Generator
 		if ((unsigned)(rando - 68) < (70 - 68)) {
-			cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_SHIELD);
-			Com_Printf("Giving %s ^7 a Forcefield Generator\n", playername);		
-			response = "You win a Forcefield Generator";
-			valid_spin = qtrue;
+			if (!(cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] & (1 << HI_SHIELD))) {
+				cl->gentity->playerState->stats[STAT_HOLDABLE_ITEMS] |= (1 << HI_SHIELD);
+				Com_Printf("Giving %s ^7 a Forcefield Generator\n", playername);
+				response = "You win a Forcefield Generator";
+				valid_spin = qtrue;
+			}
 		}
 
 		// WIN TaunTaun
 		if ((unsigned)(rando - 70) < (72 - 70)) {
 			Com_Printf("Giving %s ^7 a TaunTaun\n", playername);
+
 			response = "You win a TaunTaun";
-			SV_ExecuteClientCommand(cl, "npc spawn vehicle tauntaun", qtrue);
+
+			int rand_tauntaun = rand() % 10;
+
+			if (rand_tauntaun % 2)
+			{
+				SV_ExecuteClientCommand(cl, "npc spawn vehicle wildtauntaun", qtrue);
+			}
+			else {
+				SV_ExecuteClientCommand(cl, "npc spawn vehicle tauntaun", qtrue);
+			}
+
 			valid_spin = qtrue; // Change when fixed
 		}
 
 		// WIN Swoop Bike
 		if ((unsigned)(rando - 72) < (74 - 72)) {
 			Com_Printf("Giving %s ^7 a Swoop Bike\n", playername);
-			response = "You win a Swoop Bike";
-			SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_mp2", qtrue);
+			
+			int rand_swoop = rand() % 5;
+
+			if (rand_swoop == 0) {
+				response = "You win a Blue Swoop Bike";
+				SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_mp2", qtrue);
+			}
+
+			else if (rand_swoop == 1) {
+				response = "You win a Red Swoop Bike";
+				SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_mp", qtrue);
+			}
+
+			else if (rand_swoop == 2) {
+				response = "You win a Battle Swoop Bike";
+				SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_battle_cunning", qtrue);
+			}
+
+			else if (rand_swoop == 3) {
+				response = "You win a Racing Swoop Bike";
+				SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_race_b", qtrue);
+			}
+
+			else if (rand_swoop == 4) {
+				response = "You win a Yavin Swoop Bike";
+				SV_ExecuteClientCommand(cl, "npc spawn vehicle yavin_swoop", qtrue);
+			}
+
+			else {
+				response = "You win a Swoop Bike";
+				SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_mp2", qtrue);
+			}
+
 			valid_spin = qtrue; // Change when fixed
 		}
 
@@ -2602,11 +2685,13 @@ void SV_Spin(client_t* cl) {
 		// WIN Arm Blaster
 		if ((unsigned)(rando - 81) < (83 - 81)) {
 			if (mb_class != MB_CLASS_SBD) { // Exclude SBD
-				cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_ARM_BLASTER);
-				cl->gentity->playerState->ammo[MB_AMMO_DC15_DLT20_ARM_BLASTER] = 500;
-				Com_Printf("Giving %s ^7an a Arm Blaster\n", playername);
-				response = "You win an Arm Blaster";
-				valid_spin = qtrue;
+				if (!(cl->gentity->playerState->stats[STAT_WEAPONS] & (1 << MB_ARM_BLASTER))) {
+					cl->gentity->playerState->stats[STAT_WEAPONS] |= (1 << MB_ARM_BLASTER);
+					cl->gentity->playerState->ammo[MB_AMMO_DC15_DLT20_ARM_BLASTER] = 500;
+					Com_Printf("Giving %s ^7an a Arm Blaster\n", playername);
+					response = "You win an Arm Blaster";
+					valid_spin = qtrue;
+				}
 			}
 		}
 
@@ -2614,7 +2699,7 @@ void SV_Spin(client_t* cl) {
 		// Win A Force Power
 		if ((unsigned)(rando - 83) < (85 - 83)) {
 
-			if (cl->gentity->playerState->fd.forcePower > 0) { // Exclude Non Force Users
+			if (cl->gentity->playerState->fd.forcePower > 0 && cl->gentity->playerState->fd.forcePowerBaseLevel > 0) { // Exclude Non Force Users
 
 				// Force powers you can win and levels
 				int forcepowers[7] = { MB_FORCE_GRIP, MB_FORCE_SPEED, MB_FORCE_LIGHTNING, MB_FORCE_PROTECT, MB_FORCE_PULL, MB_FORCE_MIND_TRICK, MB_FORCE_SENSE };
@@ -2630,8 +2715,8 @@ void SV_Spin(client_t* cl) {
 					cl->gentity->playerState->fd.forcePowersKnown |= (1 << rand_forcepower);
 					cl->gentity->playerState->fd.forcePowerLevel[rand_forcepower] = rand_forcelevel;
 
-					char* forcepower_name;
-					char* forcelevel_name;
+					char* forcepower_name = "";
+					char* forcelevel_name = "";
 
 					if (rand_forcepower == MB_FORCE_GRIP) forcepower_name = "Force Grip";
 					if (rand_forcepower == MB_FORCE_SPEED) forcepower_name = "Force Speed";
@@ -2657,7 +2742,7 @@ void SV_Spin(client_t* cl) {
 		}
 
 
-		// Win Temporary Force Sensitivity
+		// WIN Temporary Force Sensitivity
 		if ((unsigned)(rando - 85) < (86 - 85)) {
 
 			if (cl->gentity->playerState->fd.forcePower == 0) { // Non Force Users Only
@@ -2687,6 +2772,14 @@ void SV_Spin(client_t* cl) {
 
 		}
 
+		// WIN Reek
+		if ((unsigned)(rando - 86) < (87 - 86)) {
+			Com_Printf("Giving %s ^7 a Reek\n", playername);
+			response = "You win a Reek";
+			SV_ExecuteClientCommand(cl, "npc spawn vehicle reek", qtrue);
+			valid_spin = qtrue; // Change when fixed
+		}
+
 		spins++;
 
 	} while (valid_spin == qfalse || spins > 20);
@@ -2699,7 +2792,7 @@ void SV_Spin(client_t* cl) {
 
 
 	// Next Spin Time
-	cl->gentity->playerState->userInt1 = svs.time + 20000;
+	cl->gentity->playerState->userInt1 = svs.time + 2;
 
 	SV_SendServerCommand(cl, "chat \"" SVTELL_PREFIX S_COLOR_MAGENTA "%s" S_COLOR_WHITE "\"\n", response);
 
@@ -2718,7 +2811,7 @@ void SV_AddOperatorCommands( void ) {
 		return;
 	}
 	initialized = qtrue;
-	Cmd_AddCommand("test", SV_Wannaswap, "");
+	Cmd_AddCommand("wannatest", SV_Wannatest, "");
 	Cmd_AddCommand("GiveForce", SV_GiveForce, "");
 		
 	Cmd_AddCommand ("heartbeat", SV_Heartbeat_f, "Sends a heartbeat to the masterserver" );
