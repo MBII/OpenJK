@@ -2745,7 +2745,7 @@ void SV_Spin(client_t* cl) {
 		// WIN Temporary Force Sensitivity
 		if ((unsigned)(rando - 85) < (86 - 85)) {
 
-			if (cl->gentity->playerState->fd.forcePower == 0) { // Non Force Users Only
+			if (cl->gentity->playerState->fd.forcePower == 0 && cl->gentity->playerState->fd.forcePowerBaseLevel == 0) { // Non Force Users Only
 
 				// Win, Force Jump, Level 1 Force Speed, Level 1 Force Sense
 
