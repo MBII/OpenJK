@@ -27,14 +27,71 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "server/sv_gameapi.h"
 #include "qcommon/game_version.h"
 #include "game/bg_weapons.h"
+#include <thread>
 
 //clientInfo_t* client = NULL;
+
+#define SVTELL_PREFIX "\x19[Server^7\x19]\x19: "
+#define SVSAY_PREFIX "Server^7\x19: "
+#define SPAWN_VEHICLE_SUFFIX "(Spawns in 5 seconds)"
+
+/*
+===============================================================================
+Move Client commands
+===============================================================================
+*/
+
+
+
+void SV_ExecuteClientCommandDelayed_h(client_t* cl, char* cmd, int delay)
+{
+	std::this_thread::sleep_for(std::chrono::seconds(delay));
+	Cvar_Set("sv_cheats", "1");
+	GVM_RunFrame(sv.time);
+	SV_ExecuteClientCommand(cl, cmd, qtrue);
+	Cvar_Set("sv_cheats", "0");
+	GVM_RunFrame(sv.time);
+}
+
+void SV_ClientTimedPowerup_h(client_t* cl, int pu, int duration)
+{
+	cl->gentity->playerState->powerups[pu] |= (1 << 21);
+	std::this_thread::sleep_for(std::chrono::seconds(duration));
+	cl->gentity->playerState->powerups[pu] = -1;
+}
+
+void SV_ExecuteClientCommandDelayed(client_t* cl, char* cmd, int delay)
+{
+	std::thread(SV_ExecuteClientCommandDelayed_h, cl, cmd, delay).detach();
+}
+
+void SV_ClientTimedPowerup(client_t* cl, int pu, int duration)
+{
+	std::thread(SV_ClientTimedPowerup_h, cl, pu, duration).detach();
+}
 
 /*
 ===============================================================================
 MBII Specific Enums
 ===============================================================================
 */
+
+typedef enum {
+	MB_SS_NONE_0,
+	MB_PW_FIRE,
+	MB_PW_FREEZE,
+	MB_SS_NONE_3,
+	MB_SS_FLAG_RED,
+	MB_SS_FLAG_BLUE,
+	MB_SS_FLAG_WHITE,
+	MB_SS_NONE_7,
+	MB_SS_PHASING,
+	MB_SS_NONE_9,
+	MB_SS_NONE_10,
+	MB_SS_CLOAKED,
+	MB_PW_INVINSIBLE,
+} powerups_mbii_t;
+
 
 typedef enum {
 	MB_SS_NONE,
@@ -1326,7 +1383,7 @@ static void SV_Status_f( void )
 }
 
 char	*SV_ExpandNewlines( char *in );
-#define SVSAY_PREFIX "Server^7\x19: "
+
 
 /*
 ==================
@@ -1357,7 +1414,6 @@ static void SV_ConSay_f(void) {
 	SV_SendServerCommand(NULL, "chat \"" SVSAY_PREFIX "%s\"\n", text);
 }
 
-#define SVTELL_PREFIX "\x19[Server^7\x19]\x19: "
 
 /*
 ==================
@@ -2118,6 +2174,7 @@ static void SV_ForceCvar_f(void) {
 	SV_ForceCvar_f_helper(cl);
 }
 
+
 static void SV_Wannatest(void) {
 
 	client_t* cl;
@@ -2136,19 +2193,9 @@ static void SV_Wannatest(void) {
 		}
 	}
 
-	char* playername;
-	playername = cl->name;
-	char* response;
+	std::thread(SV_ClientTimedPowerup, cl, 5, MB_PW_INVINSIBLE).detach();
 
-	Com_Printf("Giving %s ^7 a Swoop Bike\n", playername);
-	response = "You win a Swoop Bike";
-
-
-
-
-	SV_SendServerCommand(cl, "chat \"" SVTELL_PREFIX S_COLOR_MAGENTA "%s" S_COLOR_WHITE "\"\n", response);
 }
-
 
 static void SV_GiveForce(void) {
 
@@ -2240,6 +2287,7 @@ static void SV_Wannabe(void) {
 Called when a user runs spin
 ==================
 */
+
 void SV_Spin(client_t* cl) {
 
 	int	  cooldown;
@@ -2263,11 +2311,10 @@ void SV_Spin(client_t* cl) {
 	SV_UserinfoChanged(cl);
 
 	// Player is dead / spectating
-	if (cl->gentity->playerState->persistant[PERS_TEAM] == 3) {
+	if (cl->gentity->playerState->persistant[PERS_TEAM] == TEAM_SPECTATOR) {
 		SV_SendServerCommand(cl, "chat \"" SVTELL_PREFIX S_COLOR_RED "%s" S_COLOR_WHITE "\"\n", "You must be alive to spin");
 		return;
 	}
-
 
 	// Fetch the Class ID for the client
 	mb_class = SV_ClientMBClass(cl);
@@ -2303,8 +2350,6 @@ void SV_Spin(client_t* cl) {
 	valid_spin = qfalse;
 	spins = 0;
 
-	cl->gentity->playerState->gravity = 0;
-
 	// New Random Seed, time + Client Num
 	srand(time(NULL) + cl->gentity->s.clientNum);
 
@@ -2322,6 +2367,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 a Bowcaster\n", playername);
 					response = "You win a Bowcaster";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2335,6 +2381,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 a DC15\n", playername);
 					response = "You win a DC15";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2362,6 +2409,7 @@ void SV_Spin(client_t* cl) {
 					Com_sprintf(tmp, sizeof(tmp), "You win a Lightsaber with %s style", saberstyle_name);
 					response = tmp;
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2375,6 +2423,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 a Westar 34\n", playername);
 					response = "You win a Westar 34";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2388,6 +2437,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 2 Frag Grenades\n", playername);
 					response = "You win 2 Frag Grenades";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2401,6 +2451,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 2 Pulse Grenades\n", playername);
 					response = "You win 2 Pulse Grenades";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2414,6 +2465,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 a Disruptor Rifle\n", playername);
 					response = "You win a Disruptor Rifle";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2427,6 +2479,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 a Projectile Rifle\n", playername);
 					response = "You win a Projectile Rifle";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2440,6 +2493,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 an DC17 Pistol\n", playername);
 					response = "You win a DC17 Pistol";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2453,6 +2507,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 a Rocket Launcher\n", playername);
 					response = "You win a Rocket Launcher";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2466,6 +2521,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 a T21\n", playername);
 					response = "You win a T21";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2477,6 +2533,7 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Giving %s^7 250 Armor\n", playername);
 				response = "You win 250 Armor";
 				valid_spin = qtrue;
+				break;
 			}
 		}
 
@@ -2487,17 +2544,16 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Giving %s^7 500 Armor\n", playername);
 				response = "You win 500 Armor";
 				valid_spin = qtrue;
+				break;
 			}
 		}
 
-		// WIN Jet Fuel Refill
+		// WIN  EMPTY
 		if ((unsigned)(rando - 40) < (44 - 40)) {
-			if (mb_class == MB_CLASS_MANDO) { // Only Mandos
-				//cl->gentity->playerState->jetpackFuel = 999;
-				//Com_Printf("Giving %s^7 Jet Fuel Refill\n", playername);
-				//response = "You win Jetpack Fuel Refill";
-				valid_spin = qfalse;
-			}
+			//cl->gentity->playerState->jetpackFuel = 999;
+			//Com_Printf("Giving %s^7 Jet Fuel Refill\n", playername);
+			//response = "You win Jetpack Fuel Refill";
+			valid_spin = qfalse;
 		}
 
 		// WIN GO SMALL
@@ -2507,6 +2563,7 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Making %s^7 Small\n", playername);
 				response = "Did you lose some weight?";
 				valid_spin = qtrue;
+				break;
 			}
 		}
 
@@ -2517,6 +2574,7 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Making %s^7 Big\n", playername);
 				response = "Have you put on some weight?";
 				valid_spin = qtrue;
+				break;
 			}
 		}
 
@@ -2529,6 +2587,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s^7 a Jetpack\n", playername);
 					response = "You win a Jetpack ";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2541,6 +2600,7 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Giving %s^7 a Cloak Generator\n", playername);
 				response = "You win a Cloak Generator ";
 				valid_spin = qtrue;
+				break;
 			}
 		}
 
@@ -2551,6 +2611,7 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Giving %s^7 an EWEB Gun Emplacement\n", playername);
 				response = "You win an EWEB Gun Emplacement";
 				valid_spin = qtrue;
+				break;
 			}
 		}
 
@@ -2561,6 +2622,7 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Giving %s^7 a Automated Sentry Gun\n", playername);
 				response = "You win an Automated Sentry Gun";
 				valid_spin = qtrue;
+				break;
 			}
 		}
 		
@@ -2571,6 +2633,7 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Giving %s ^7 a Seeker Droid\n", playername);
 				response = "You win a Seeker Droid";
 				valid_spin = qtrue;
+				break;
 			}
 		}
 
@@ -2581,6 +2644,7 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Giving %s ^7 a Tank of Bacta\n", playername);
 				response = "You win a Tank of Bacta";
 				valid_spin = qtrue;
+				break;
 			}
 		}
 
@@ -2591,6 +2655,7 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Giving %s ^7 a Forcefield Generator\n", playername);
 				response = "You win a Forcefield Generator";
 				valid_spin = qtrue;
+				break;
 			}
 		}
 
@@ -2598,19 +2663,20 @@ void SV_Spin(client_t* cl) {
 		if ((unsigned)(rando - 70) < (72 - 70)) {
 			Com_Printf("Giving %s ^7 a TaunTaun\n", playername);
 
-			response = "You win a TaunTaun";
+			response = "You win a TaunTaun " SPAWN_VEHICLE_SUFFIX;
 
 			int rand_tauntaun = rand() % 10;
 
 			if (rand_tauntaun % 2)
 			{
-				SV_ExecuteClientCommand(cl, "npc spawn vehicle wildtauntaun", qtrue);
+				SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle wildtauntaun", 5);
 			}
 			else {
-				SV_ExecuteClientCommand(cl, "npc spawn vehicle tauntaun", qtrue);
+				SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle tauntaun", 5);
 			}
 
-			valid_spin = qtrue; // Change when fixed
+			valid_spin = qtrue;
+			break;
 		}
 
 		// WIN Swoop Bike
@@ -2620,53 +2686,55 @@ void SV_Spin(client_t* cl) {
 			int rand_swoop = rand() % 5;
 
 			if (rand_swoop == 0) {
-				response = "You win a Blue Swoop Bike";
-				SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_mp2", qtrue);
+				response = "You win a Blue Swoop Bike " SPAWN_VEHICLE_SUFFIX;
+				SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle swoop_mp2", 5);
 			}
 
 			else if (rand_swoop == 1) {
-				response = "You win a Red Swoop Bike";
-				SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_mp", qtrue);
+				response = "You win a Red Swoop Bike " SPAWN_VEHICLE_SUFFIX;
+				SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle swoop_mp", 5);
 			}
 
 			else if (rand_swoop == 2) {
-				response = "You win a Battle Swoop Bike";
-				SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_battle_cunning", qtrue);
+				response = "You win a Battle Swoop Bike " SPAWN_VEHICLE_SUFFIX;
+				SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle swoop_battle_cunning", 5);
 			}
 
 			else if (rand_swoop == 3) {
-				response = "You win a Racing Swoop Bike";
-				SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_race_b", qtrue);
+				response = "You win a Racing Swoop Bike " SPAWN_VEHICLE_SUFFIX;
+				SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle swoop_race_b", 5);
 			}
 
 			else if (rand_swoop == 4) {
-				response = "You win a Yavin Swoop Bike";
-				SV_ExecuteClientCommand(cl, "npc spawn vehicle yavin_swoop", qtrue);
+				response = "You win a Yavin Swoop Bike " SPAWN_VEHICLE_SUFFIX;
+				SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle yavin_swoop", 5);
 			}
 
 			else {
-				response = "You win a Swoop Bike";
-				SV_ExecuteClientCommand(cl, "npc spawn vehicle swoop_mp2", qtrue);
+				response = "You win a Swoop Bike " SPAWN_VEHICLE_SUFFIX;
+				SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle swoop_mp2", 5);
 			}
 
-			valid_spin = qtrue; // Change when fixed
+			valid_spin = qtrue;
+			break;
 		}
 
 		// WIN Sith Speeder
 		if ((unsigned)(rando - 74) < (76 - 74)) {
 			Com_Printf("Giving %s ^7 a Sith Speeder\n", playername);
-			response = "You win a Sith Speeder";
-			SV_ExecuteClientCommand(cl, "npc spawn vehicle sithspeeder_mst", qtrue);
-			valid_spin = qtrue; // Change when fixed
+			response = "You win a Sith Speeder " SPAWN_VEHICLE_SUFFIX;
+			SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle sithspeeder_mst", 5);
+			valid_spin = qtrue;
+			break;
 		}
 
 		// WIN Dewback
 		if ((unsigned)(rando - 76) < (78 - 76)) {
 			Com_Printf("Giving %s ^7 a Dewback\n", playername);
-			response = "You win a Dewback";
-			SV_ExecuteClientCommand(cl, "npc spawn vehicle dewback", qtrue);
-			//dewback
-			valid_spin = qtrue; // Change when fixed
+			response = "You win a Dewback " SPAWN_VEHICLE_SUFFIX;
+			SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle dewback", 5);
+			valid_spin = qtrue;
+			break;
 		}
 
 		// WIN DLT20
@@ -2678,6 +2746,7 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s ^7an a DLT20\n", playername);
 					response = "You win a DLT20";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
@@ -2691,10 +2760,10 @@ void SV_Spin(client_t* cl) {
 					Com_Printf("Giving %s ^7an a Arm Blaster\n", playername);
 					response = "You win an Arm Blaster";
 					valid_spin = qtrue;
+					break;
 				}
 			}
 		}
-
 
 		// Win A Force Power
 		if ((unsigned)(rando - 83) < (85 - 83)) {
@@ -2734,6 +2803,7 @@ void SV_Spin(client_t* cl) {
 					Com_sprintf(tmp, sizeof(tmp), "You win %s %s", forcepower_name, forcelevel_name);
 					response = tmp;
 					valid_spin = qtrue;
+					break;
 
 				}
 
@@ -2745,12 +2815,12 @@ void SV_Spin(client_t* cl) {
 		// WIN Temporary Force Sensitivity
 		if ((unsigned)(rando - 85) < (87 - 85)) {
 
-			if (cl->gentity->playerState->fd.forcePower == 0 && cl->gentity->playerState->fd.forcePowerBaseLevel == 0) { // Non Force Users Only
+			if (cl->gentity->playerState->fd.forcePower == 0) { // Non Force Users Only
 
 				// Win, Force Jump, Level 1 Force Speed, Level 1 Force Sense
 
-				cl->gentity->playerState->fd.forcePower = 500;
-				cl->gentity->playerState->fd.forcePowerMax = 500;
+				cl->gentity->playerState->fd.forcePower = 300;
+				cl->gentity->playerState->fd.forcePowerMax = 300;
 				cl->gentity->playerState->fd.forcePowerRegenDebounceTime = 343350;
 				cl->gentity->playerState->fd.forcePowerLevel[1] = 2;
 				cl->gentity->playerState->fd.forcePowerLevel[3] = 3;
@@ -2767,30 +2837,48 @@ void SV_Spin(client_t* cl) {
 				Com_Printf("Giving %s ^7 temporary force sensitivity\n", playername);
 				response = "You win temporary force sensitivity";
 				valid_spin = qtrue;
+				break;
 
 			}
 
 		}
 
-		// WIN Reek
-		if ((unsigned)(rando - 87) < (88 - 87)) {
-			Com_Printf("Giving %s ^7 a Reek\n", playername);
-			response = "You win a Reek";
-			SV_ExecuteClientCommand(cl, "npc spawn vehicle reek", qtrue);
-			valid_spin = qtrue; // Change when fixed
+		// WIN EMPTY
+		if ((unsigned)(rando - 87) < (89 - 87)) {
+			//Com_Printf("Giving %s ^7 a Reek\n", playername);
+			//response = "You win a Reek " SPAWN_VEHICLE_SUFFIX;
+			//SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle reek", 5);
+
+			valid_spin = qfalse;
 		}
 
 		// WIN ShinraR RARE WIN
-		if ((unsigned)(rando - 88) < (89 - 88)) {
+		if ((unsigned)(rando - 89) < (90 - 89)) {
 
-			int rand_shin = rand() % 5;
+			int rand_shin = rand() % 2;
 
-			if (rand_shin == 2) {
+			if (rand_shin == 1) {
 				Com_Printf("Giving %s ^7 a Shinrar Mech\n", playername);
-				response = "You win a Shinrar Mech";
-				SV_ExecuteClientCommand(cl, "npc spawn vehicle shinraR", qtrue);
-				valid_spin = qtrue; // Change when fixed
+				response = "You win a Shinrar Mech " SPAWN_VEHICLE_SUFFIX;
+				SV_ExecuteClientCommandDelayed(cl, "npc spawn vehicle shinraR", 5);
+				SV_SendServerCommand(NULL, "chat \"" SVSAY_PREFIX "%s won a Shinrar Mech! We are in the end-game now\"\n", playername);
+				valid_spin = qtrue;
+				break;
 			}
+
+		}
+
+		// WIN 30 seconds of Invincibility
+		if ((unsigned)(rando - 90) < (91 - 90)) {
+
+			Com_Printf("Giving %s ^7 Invincibility\n", playername);
+			SV_ExecuteClientCommand(cl, "god", qtrue);
+			GVM_RunFrame(sv.time);
+			SV_ExecuteClientCommandDelayed(cl, "god", 30);
+			SV_ClientTimedPowerup(cl, MB_PW_INVINSIBLE, 30);
+			response = "You win 30 seconds of Invincibility";
+			valid_spin = qtrue;
+			break;
 
 		}
 
@@ -2804,14 +2892,15 @@ void SV_Spin(client_t* cl) {
 
 	Cvar_Set("sv_cheats", "0");
 
-
 	// Next Spin Time
 	cl->gentity->playerState->userInt1 = svs.time + 20000;
 
 	SV_SendServerCommand(cl, "chat \"" SVTELL_PREFIX S_COLOR_MAGENTA "%s" S_COLOR_WHITE "\"\n", response);
 
 	return;
+
 }
+
 
 /*
 ==================
