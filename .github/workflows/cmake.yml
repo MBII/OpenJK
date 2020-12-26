@@ -23,7 +23,7 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: cmake ${{runner.workspace}} -pthread -DCMAKE_TOOLCHAIN_FILE=CMakeModules/Toolchains/linux-i686.cmake -DBuildMPEngine=OFF -DBuildMPRdVanilla=OFF -DBuildMPCGame=OFF -DBuildMPUI=OFF -DBuildSPEngine=OFF -DBuildSPGame=OFF -DBuildSPRdVanilla=OFF
+      run: cmake -pthread -DCMAKE_TOOLCHAIN_FILE=CMakeModules/Toolchains/linux-i686.cmake -DBuildMPEngine=OFF -DBuildMPRdVanilla=OFF -DBuildMPCGame=OFF -DBuildMPUI=OFF -DBuildSPEngine=OFF -DBuildSPGame=OFF -DBuildSPRdVanilla=OFF ${{runner.workspace}}
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
