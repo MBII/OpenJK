@@ -1298,6 +1298,34 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 			return;
 		}
 
+		//run buy function, does not display text
+		if (Q_stricmp("!buy", cp) == 0)
+		{
+			SV_Buy(cl);
+			return;
+		}
+
+		//run help function, does not display text
+		if (Q_stricmp("!help", cp) == 0)
+		{
+			SV_Help(cl);
+			return;
+		}
+		
+		//run funds function, does not display text
+		if (Q_stricmp("!funds", cp) == 0)
+		{
+			SV_Funds(cl);
+			return;
+		}
+
+		//run upgrade function, does not display text
+		if (Q_stricmp("!upgrade", cp) == 0)
+		{
+			SV_Upgrade(cl);
+			return;
+		}
+
 		// pass unknown strings to the game
 		if (!u->name && sv.state == SS_GAME && (cl->state == CS_ACTIVE || cl->state == CS_PRIMED)) {
 			// strip \r \n and ;
@@ -1310,10 +1338,6 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 			}
 			GVM_ClientCommand( cl - svs.clients );
 		}
-
-
-
-
 	}
 	else if (!bProcessed)
 		Com_DPrintf( "client text ignored for %s: %s\n", cl->name, Cmd_Argv(0) );

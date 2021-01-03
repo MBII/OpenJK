@@ -408,6 +408,14 @@ int			SV_BotGetConsoleMessage( int client, char *buf, int size );
 //
 void SV_Spin(client_t* cl);
 
+void SV_Buy(client_t* cl);
+
+void SV_Help(client_t* cl);
+
+void SV_Funds(client_t* cl);
+
+void SV_Upgrade(client_t* cl);
+
 void *Bot_GetMemoryGame(int size);
 void Bot_FreeMemoryGame(void *ptr);
 
