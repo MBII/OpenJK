@@ -18,6 +18,7 @@
 
 cmake_minimum_required(VERSION 3.1)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Minimum OS X deployment version")
+cmake_policy(SET CMP0072 NEW)
 
 set(InOpenJK ON)
 
@@ -34,7 +35,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 option(BuildPortableVersion "Build portable version (does not read or write files from your user/home directory" OFF)
 
 option(BuildMPEngine "Whether to create projects for the MP client (openjk.exe)" ON)
-option(BuildMPRdVanilla "Whether to create projects for the MP default renderer (rd-vanilla_x86.dll)" ON)
+option(BuildMPRdVanilla "Whether to create projects for the MP default renderer (rd-vanilla_x86.dll)" OFF)
 option(BuildMPRdVulkan "Whether to create projects for the MP vulkan renderer (rd-vulkan_x86.dll)" ON)
 option(BuildMPDed "Whether to create projects for the MP dedicated server (openjkded.exe)" ON)
 option(BuildMPGame "Whether to create projects for the MP server-side gamecode (jampgamex86.dll)" OFF)
@@ -43,7 +44,7 @@ option(BuildMPUI "Whether to create projects for the MP UI code (uix86.dll)" OFF
 option(BuildSPEngine "Whether to create projects for the SP engine (openjk_sp.exe)" OFF)
 option(BuildSPGame "Whether to create projects for the SP gamecode (jagamex86.dll)" OFF)
 option(BuildSPRdVanilla "Whether to create projects for the SP default renderer (rdsp-vanilla_x86.dll)" OFF)
-option(BuildMPRend2 "Whether to create projects for the EXPERIMENTAL MP rend2 renderer (rd-rend2_x86.dll)" ON)
+option(BuildMPRend2 "Whether to create projects for the EXPERIMENTAL MP rend2 renderer (rd-rend2_x86.dll)" OFF)
 option(BuildJK2SPEngine "Whether to create projects for the jk2 SP engine (openjo_sp.exe)" OFF)
 option(BuildJK2SPGame "Whether to create projects for the jk2 sp gamecode mod (jk2gamex86.dll)" OFF)
 option(BuildJK2SPRdVanilla "Whether to create projects for the jk2 sp renderer (rdjosp-vanilla_x86.dll)" OFF)
