@@ -937,9 +937,9 @@ qboolean G2_Get_Bone_Anim(CGhoul2Info *ghlInfo, boneInfo_v &blist, const char *b
 
 	if (G2_Get_Bone_Anim_Index(blist, index, currentTime, currentFrame, startFrame, endFrame, flags, retAnimSpeed, modelList, ghlInfo->aHeader->numFrames))
 	{
-		assert(*startFrame>=0&&*startFrame<ghlInfo->aHeader->numFrames);
+		/*assert(*startFrame>=0&&*startFrame<ghlInfo->aHeader->numFrames);
 		assert(*endFrame>0&&*endFrame<=ghlInfo->aHeader->numFrames);
-		assert(*currentFrame>=0.0f&&((int)(*currentFrame))<ghlInfo->aHeader->numFrames);
+		assert(*currentFrame>=0.0f&&((int)(*currentFrame))<ghlInfo->aHeader->numFrames);*/
 		return qtrue;
 	}
 

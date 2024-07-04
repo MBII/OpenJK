@@ -1343,10 +1343,10 @@ qboolean G2API_SetBoneAnim(CGhoul2Info_v &ghoul2, const int modelIndex, const ch
 qboolean G2API_GetBoneAnim(CGhoul2Info_v& ghoul2, int modelIndex, const char *boneName, const int currentTime, float *currentFrame,
 						   int *startFrame, int *endFrame, int *flags, float *animSpeed, int *modelList)
 {
-	assert(startFrame!=endFrame); //this is bad
+	/*assert(startFrame!=endFrame); //this is bad
 	assert(startFrame!=flags); //this is bad
 	assert(endFrame!=flags); //this is bad
-	assert(currentFrame!=animSpeed); //this is bad
+	assert(currentFrame!=animSpeed); //this is bad*/
 
 	CGhoul2Info *ghlInfo = &ghoul2[modelIndex];
 

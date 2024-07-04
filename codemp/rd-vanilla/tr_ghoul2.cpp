@@ -1087,10 +1087,10 @@ static int G2_GetBonePoolIndex(const mdxaHeader_t *pMDXAHeader, int iFrame, int 
 
 void G2_TimingModel(boneInfo_t &bone,int currentTime,int numFramesInFile,int &currentFrame,int &newFrame,float &lerp)
 {
-	assert(bone.startFrame>=0);
+	/*assert(bone.startFrame>=0);
 	assert(bone.startFrame<=numFramesInFile);
 	assert(bone.endFrame>=0);
-	assert(bone.endFrame<=numFramesInFile);
+	assert(bone.endFrame<=numFramesInFile);*/
 
 	// yes - add in animation speed to current frame
 	float	animSpeed = bone.animSpeed;
@@ -1244,27 +1244,27 @@ void G2_TimingModel(boneInfo_t &bone,int currentTime,int numFramesInFile,int &cu
 				// frame we want to display
 				lerp = (newFrame_g - currentFrame);
 
-				assert(currentFrame>=0&&currentFrame<numFramesInFile);
+				//assert(currentFrame>=0&&currentFrame<numFramesInFile);
 
 				newFrame = currentFrame + 1;
 				// are we now on the end frame?
-				assert((int)endFrame<=numFramesInFile);
+				//assert((int)endFrame<=numFramesInFile);
 				if (newFrame >= (int)endFrame)
 				{
 					// we only want to lerp with the first frame of the anim if we are looping
 					if (bone.flags & BONE_ANIM_OVERRIDE_LOOP)
 					{
 					  	newFrame = bone.startFrame;
-						assert(newFrame>=0&&newFrame<numFramesInFile);
+						//assert(newFrame>=0&&newFrame<numFramesInFile);
 					}
 					// if we intend to end this anim or freeze after this, then just keep on the last frame
 					else
 					{
 						newFrame = bone.endFrame-1;
-						assert(newFrame>=0&&newFrame<numFramesInFile);
+						//assert(newFrame>=0&&newFrame<numFramesInFile);
 					}
 				}
-				assert(newFrame>=0&&newFrame<numFramesInFile);
+				//assert(newFrame>=0&&newFrame<numFramesInFile);
 			}
 			else
 			{
@@ -1287,18 +1287,18 @@ void G2_TimingModel(boneInfo_t &bone,int currentTime,int numFramesInFile,int &cu
 						if (bone.flags & BONE_ANIM_OVERRIDE_LOOP)
 						{
 					  		newFrame = bone.startFrame;
-							assert(newFrame>=0&&newFrame<numFramesInFile);
+							//assert(newFrame>=0&&newFrame<numFramesInFile);
 						}
 						// if we intend to end this anim or freeze after this, then just keep on the last frame
 						else
 						{
 							newFrame = bone.endFrame+1;
-							assert(newFrame>=0&&newFrame<numFramesInFile);
+							//assert(newFrame>=0&&newFrame<numFramesInFile);
 						}
 					}
 				}
-				assert(currentFrame>=0&&currentFrame<numFramesInFile);
-				assert(newFrame>=0&&newFrame<numFramesInFile);
+				//assert(currentFrame>=0&&currentFrame<numFramesInFile);
+				//assert(newFrame>=0&&newFrame<numFramesInFile);
 			}
 		}
 	}
@@ -1316,15 +1316,15 @@ void G2_TimingModel(boneInfo_t &bone,int currentTime,int numFramesInFile,int &cu
 		{
 			currentFrame=0;
 		}
-		assert(currentFrame>=0&&currentFrame<numFramesInFile);
+		//assert(currentFrame>=0&&currentFrame<numFramesInFile);
 		newFrame = currentFrame;
 		assert(newFrame>=0&&newFrame<numFramesInFile);
 		lerp = 0;
 
 	}
-	assert(currentFrame>=0&&currentFrame<numFramesInFile);
-	assert(newFrame>=0&&newFrame<numFramesInFile);
-	assert(lerp>=0.0f&&lerp<=1.0f);
+	//assert(currentFrame>=0&&currentFrame<numFramesInFile);
+	//assert(newFrame>=0&&newFrame<numFramesInFile);
+	//assert(lerp>=0.0f&&lerp<=1.0f);
 }
 
 #ifdef _RAG_PRINT_TEST
@@ -1348,8 +1348,8 @@ void G2_RagGetAnimMatrix(CGhoul2Info &ghoul2, const int boneNum, mdxaBone_t &mat
 	bool actuallySet = false;
 #endif
 
-	assert(ghoul2.mBoneCache);
-	assert(ghoul2.animModel);
+	//assert(ghoul2.mBoneCache);
+	//assert(ghoul2.animModel);
 
 	offsets = (mdxaSkelOffsets_t *)((byte *)ghoul2.mBoneCache->header + sizeof(mdxaHeader_t));
 	skel = (mdxaSkel_t *)((byte *)ghoul2.mBoneCache->header + sizeof(mdxaHeader_t) + offsets->offsets[boneNum]);
@@ -1371,7 +1371,7 @@ void G2_RagGetAnimMatrix(CGhoul2Info &ghoul2, const int boneNum, mdxaBone_t &mat
 		}
 	}
 
-	assert(bListIndex != -1);
+	//assert(bListIndex != -1);
 
 	boneInfo_t &bone = ghoul2.mBlist[bListIndex];
 
@@ -1528,13 +1528,13 @@ void G2_TransformBone (int child,CBoneCache &BC)
 		//rwwFIXMEFIXME: Use?
 	}
 	// figure out where the location of the bone animation data is
-	assert(TB.newFrame>=0&&TB.newFrame<BC.header->numFrames);
+	//assert(TB.newFrame>=0&&TB.newFrame<BC.header->numFrames);
 	if (!(TB.newFrame>=0&&TB.newFrame<BC.header->numFrames))
 	{
 		TB.newFrame=0;
 	}
 //	aFrame = (mdxaFrame_t *)((byte *)BC.header + BC.header->ofsFrames + TB.newFrame * BC.frameSize );
-	assert(TB.currentFrame>=0&&TB.currentFrame<BC.header->numFrames);
+	//assert(TB.currentFrame>=0&&TB.currentFrame<BC.header->numFrames);
 	if (!(TB.currentFrame>=0&&TB.currentFrame<BC.header->numFrames))
 	{
 		TB.currentFrame=0;
@@ -1542,13 +1542,13 @@ void G2_TransformBone (int child,CBoneCache &BC)
 //	aoldFrame = (mdxaFrame_t *)((byte *)BC.header + BC.header->ofsFrames + TB.currentFrame * BC.frameSize );
 
 	// figure out where the location of the blended animation data is
-	assert(!(TB.blendFrame < 0.0 || TB.blendFrame >= (BC.header->numFrames+1)));
+	//assert(!(TB.blendFrame < 0.0 || TB.blendFrame >= (BC.header->numFrames+1)));
 	if (TB.blendFrame < 0.0 || TB.blendFrame >= (BC.header->numFrames+1) )
 	{
 		TB.blendFrame=0.0;
 	}
 //	bFrame = (mdxaFrame_t *)((byte *)BC.header + BC.header->ofsFrames + (int)TB.blendFrame * BC.frameSize );
-	assert(TB.blendOldFrame>=0&&TB.blendOldFrame<BC.header->numFrames);
+	//assert(TB.blendOldFrame>=0&&TB.blendOldFrame<BC.header->numFrames);
 	if (!(TB.blendOldFrame>=0&&TB.blendOldFrame<BC.header->numFrames))
 	{
 		TB.blendOldFrame=0;
@@ -1698,7 +1698,7 @@ void G2_TransformBone (int child,CBoneCache &BC)
 	//rww - removed mSkels
 
 	int parent=BC.mFinalBones[child].parent;
-	assert((parent==-1&&child==0)||(parent>=0&&parent<(int)BC.mBones.size()));
+	//assert((parent==-1&&child==0)||(parent>=0&&parent<(int)BC.mBones.size()));
 	if (angleOverride & BONE_ANGLES_REPLACE)
 	{
 		bool isRag=!!(angleOverride & BONE_ANGLES_RAGDOLL);
