@@ -256,10 +256,9 @@ elseif (("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU") OR ("${CMAKE_C_COMPILER_ID}" M
 			# instructions will be used no matter what and they
 			# corrupt the frame pointer in VM calls"
 			# -ioquake3 Makefile
-#			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mstackrealign")
+			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mstackrealign")
 #			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse")
-                        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mpreferred-stack-boundary=4")
-
+                        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mincoming-stack-boundary=4")
 		endif()
 
 		if(WIN32)
@@ -281,9 +280,9 @@ elseif (("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU") OR ("${CMAKE_C_COMPILER_ID}" M
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsigned-char")
 		if (X86)
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mpreferred-stack-boundary=4")
-#                       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mstackrealign")
+                        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mstackrealign")
 #			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse")
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mincoming-stack-boundary=4")
 		endif()
 	elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
