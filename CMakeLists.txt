@@ -215,9 +215,11 @@ if(MSVC)
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /arch:SSE2")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /fp:strict")
 
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:SSE2")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fp:strict")
 
 	# We don't try to control symbol visibility under MSVC.
 	set(OPENJK_VISIBILITY_FLAGS "")
@@ -263,7 +265,6 @@ elseif (("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU") OR ("${CMAKE_C_COMPILER_ID}" M
 			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mstackrealign")
 			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse")
                         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexcess-precision=standard")
-#                        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffp-contract=fast")
                         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -frounding-math")
 		endif()
 
@@ -289,7 +290,6 @@ elseif (("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU") OR ("${CMAKE_C_COMPILER_ID}" M
                      	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mstackrealign")
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse")
                         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexcess-precision=standard")
-#                        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=fast")
                         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frounding-math")
 		endif()
 	elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
