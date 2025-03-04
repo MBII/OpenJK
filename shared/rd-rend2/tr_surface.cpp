@@ -239,10 +239,10 @@ void RB_InstantQuad(vec4_t quadVerts[4])
 	VectorSet2(texCoords[2], 1.0f, 1.0f);
 	VectorSet2(texCoords[3], 0.0f, 1.0f);
 
-	GLSL_BindProgram(&tr.textureColorShader);
-	
-	GLSL_SetUniformMatrix4x4(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-	GLSL_SetUniformVec4(&tr.textureColorShader, UNIFORM_COLOR, colorWhite);
+	GLSL_BindProgram(&tr.textureColorShader[TEXCOLORDEF_USE_VERTICES]);
+
+	GLSL_SetUniformMatrix4x4(&tr.textureColorShader[TEXCOLORDEF_USE_VERTICES], UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformVec4(&tr.textureColorShader[TEXCOLORDEF_USE_VERTICES], UNIFORM_COLOR, colorWhite);
 
 	RB_InstantQuad2(quadVerts, texCoords);
 }
@@ -612,7 +612,7 @@ static void RB_SurfaceBeam( void )
 {
 #define NUM_BEAM_SEGS 6
 	refEntity_t *e;
-	shaderProgram_t *sp = &tr.textureColorShader;
+	shaderProgram_t *sp = &tr.textureColorShader[TEXCOLORDEF_USE_VERTICES];
 	int	i;
 	vec3_t perpvec;
 	vec3_t direction, normalized_direction;
@@ -1959,7 +1959,6 @@ static void RB_SurfaceBSPGrid( srfBspSurface_t *srf ) {
 	}
 }
 
-
 /*
 ===========================================================================
 
@@ -2094,13 +2093,17 @@ void RB_SurfaceVBOMDVMesh(srfVBOMDVMesh_t * surface)
 		RB_EndSurface();
 	}
 
-	//drawSurf_t drawSurf = 
+	//FIXME: Implement GPU vertex interpolation instead!
+	if (backEnd.currentEntity->e.oldframe != 0 ||
+		backEnd.currentEntity->e.frame != 0 ||
+		ShaderRequiresCPUDeforms(tess.shader)
+		)
+	{
+		RB_SurfaceMesh(surface->mdvSurface);
+		return;
+	}
 
-	R_BindVBO(surface->vbo);
-	R_BindIBO(surface->ibo);
-
-	tess.useInternalVBO = qfalse;
-	tess.externalIBO = surface->ibo;
+	RB_CheckVBOandIBO(surface->vbo, surface->ibo);
 
 	// tess.dlightBits is already set in the renderloop
 
@@ -2207,24 +2210,30 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 	uint32_t shaderFlags = 0;
 	/*if ( surf->alphaTestType != ALPHA_TEST_NONE )
 		shaderFlags |= SSDEF_ALPHA_TEST;*/
-
 	if ( ss->type == SURFSPRITE_ORIENTED )
 		shaderFlags |= SSDEF_FACE_CAMERA;
+	else if (ss->type == SURFSPRITE_FLATTENED)
+		shaderFlags |= SSDEF_FLATTENED;
+	else if (ss->type == SURFSPRITE_EFFECT)
+		shaderFlags |= SSDEF_FX_SPRITE | SSDEF_FACE_CAMERA;
+	else if (ss->type == SURFSPRITE_WEATHERFX)
+		shaderFlags |= SSDEF_FX_SPRITE; // ???
 
 	if (ss->facing == SURFSPRITE_FACING_UP)
-		shaderFlags |= SSDEF_FACE_UP;
-
-	if (ss->facing == SURFSPRITE_FACING_NORMAL)
-		shaderFlags |= SSDEF_FLATTENED;
-
-	if (ss->type == SURFSPRITE_EFFECT || ss->type == SURFSPRITE_WEATHERFX)
-		shaderFlags |= SSDEF_FX_SPRITE;
+		shaderFlags = (shaderFlags & ~SSDEF_FACE_CAMERA) | SSDEF_FACE_UP;
 
 	if ((firstStage->stateBits & (GLS_SRCBLEND_BITS|GLS_DSTBLEND_BITS)) == (GLS_SRCBLEND_ONE|GLS_DSTBLEND_ONE))
 		shaderFlags |= SSDEF_ADDITIVE;
 
 	if (surf->fogIndex > 0 && r_drawfog->integer)
 		shaderFlags |= SSDEF_USE_FOG;
+
+	if (backEnd.depthFill &&
+		tr.depthVelocityFbo != nullptr &&
+		glState.currentFBO == tr.depthVelocityFbo)
+	{
+		shaderFlags |= SSDEF_VELOCITY;
+	}
 
 	shaderProgram_t *program = programGroup + shaderFlags;
 	assert(program->uniformBlocks & (1 << UNIFORM_BLOCK_SURFACESPRITE));
@@ -2240,12 +2249,43 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 		UNIFORM_ALPHA_TEST_TYPE, surf->alphaTestType);
 
 	if (surf->fogIndex != -1)
+	{
 		uniformDataWriter.SetUniformInt(UNIFORM_FOGINDEX, surf->fogIndex - 1);
 
+		if (r_volumetricFog->integer)
+		{
+			if (tr.world)
+			{
+				vec3_t sampleOrigin;
+				VectorMA(tr.world->lightGridOrigin, -0.5f, tr.world->lightGridSize, sampleOrigin);
+				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, sampleOrigin);
+				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDCELLINVERSESIZE, tr.world->lightGridInverseSize);
+			}
+			else
+			{
+				const vec3_t origin = { 0.0f, 0.0f, 0.0f };
+				const vec3_t size = { 1.0f, 1.0f, 1.0f };
+				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, origin);
+				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDCELLINVERSESIZE, size);
+			}
+		}
+	}
 	Allocator& frameAllocator = *backEndData->perFrameMemory;
 
 	SamplerBindingsWriter samplerBindingsWriter;
 	samplerBindingsWriter.AddAnimatedImage(&firstStage->bundle[0], TB_COLORMAP);
+
+	if (surf->fogIndex != -1 && r_volumetricFog->integer)
+	{
+		if (tr.world && tr.world->lightGridData)
+		{
+			samplerBindingsWriter.AddStaticImage(tr.world->volumetricLightMaps[0], 2);
+		}
+		else
+		{
+			samplerBindingsWriter.AddStaticImage(tr.whiteImage3D, 2);
+		}
+	}
 
 	const byte currentFrameScene = backEndData->currentFrame->currentScene;
 	const GLuint currentFrameUbo = backEndData->currentFrame->ubo[currentFrameScene];
@@ -2254,7 +2294,8 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 		{ currentSpriteUbo, ss->spriteUboOffset, UNIFORM_BLOCK_SURFACESPRITE },
 		{ currentFrameUbo, tr.sceneUboOffset, UNIFORM_BLOCK_SCENE },
 		{ currentFrameUbo, tr.cameraUboOffsets[tr.viewParms.currentViewParm], UNIFORM_BLOCK_CAMERA },
-		{ currentFrameUbo, tr.fogsUboOffset, UNIFORM_BLOCK_FOGS }
+		{ currentFrameUbo, tr.fogsUboOffset, UNIFORM_BLOCK_FOGS },
+		{ currentFrameUbo, tr.temporalInfoUboOffset, UNIFORM_BLOCK_TEMPORAL_INFO }
 	};
 
 	uint32_t numBindings;
@@ -2270,6 +2311,8 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 
 		DrawItem item = {};
 		item.renderState.stateBits = firstStage->stateBits;
+		if (ss->facing == SURFSPRITE_FACING_UP)
+			item.renderState.stateBits |= GLS_POLYGON_OFFSET_FILL;
 		item.renderState.cullType = CT_TWO_SIDED;
 		item.renderState.depthRange = DepthRange{ 0.0f, 1.0f };
 		item.program = program;
