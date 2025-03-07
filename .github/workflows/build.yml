@@ -90,7 +90,7 @@ jobs:
         mv codemp/rd-rend2/rd-rend2-mbii_i386.so .
       
     - name: Upload Build
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v4.6.1
       with:
         name: Linux Client Build ${{ matrix.build_type }}
         path: |
@@ -126,7 +126,7 @@ jobs:
       run: cmake --build .
       
     - name: Upload Build
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v4.6.1
       with:
         name: Linux Server Build ${{ matrix.build_type }}
         path: ${{runner.workspace}}/build/*.i386
