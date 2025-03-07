@@ -55,7 +55,7 @@ jobs:
 
   linux:
     name: Build Linux Client, ${{ matrix.build_type }}
-    runs-on: ubuntu-18.04
+    runs-on: [self-hosted, linux]
     strategy:
       matrix:
         build_type: [Release]
