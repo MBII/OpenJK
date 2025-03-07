@@ -36,7 +36,7 @@ jobs:
       run: ./editbin.exe /largeaddressaware ${{runner.workspace}}/build/${{ matrix.build_type }}/mbii.x86.exe
 
     - name: Upload Build
-      uses: actions/upload-artifact@v2.2.4
+      uses: actions/upload-artifact@v4.6.1
       with:
         name: Windows Build ${{ matrix.build_type }}
         path: |
