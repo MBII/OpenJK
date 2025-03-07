@@ -62,13 +62,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: Create Build Environment
-      run: |
-        sudo dpkg --add-architecture i386
-        sudo apt-get update
-        sudo apt-get install build-essential cmake gcc-multilib g++-multilib libjpeg-dev:i386 libpng-dev:i386 zlib1g-dev:i386 libsdl2-dev:i386
-        cmake -E make_directory ${{runner.workspace}}/build
         
     - name: Configure CMake
       shell: bash
