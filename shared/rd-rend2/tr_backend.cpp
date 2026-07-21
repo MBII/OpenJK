@@ -402,7 +402,7 @@ void GL_VertexAttribPointers(
 	assert(attributes != nullptr || numAttributes == 0);
 
 	uint32_t newAttribs = 0;
-	for ( int i = 0; i < numAttributes; i++ )
+	for ( size_t i = 0; i < numAttributes; i++ )
 	{
 		vertexAttribute_t& attrib = attributes[i];
 		vertexAttribute_t& currentAttrib = glState.currentVaoAttribs[attrib.index];
@@ -1302,7 +1302,6 @@ static void RB_SubmitDrawSurfs(
 {
 	shader_t *oldShader = nullptr;
 	int oldEntityNum = -1;
-	int oldSort = -1;
 	int oldFogNum = -1;
 	int oldDlighted = 0;
 	int oldPostRender = 0;
@@ -1330,6 +1329,7 @@ static void RB_SubmitDrawSurfs(
 			{
 				RB_EndSurface();
 				RB_BeginSurface(shader, fogNum, cubemapIndex);
+				tess.dlightBits = dlighted;
 				oldBoneCache = ((CRenderableSurface*)drawSurf->surface)->boneCache;
 				tr.animationBoneUboOffset = RB_GetBoneUboOffset((CRenderableSurface*)drawSurf->surface);
 				tr.previousAnimationBoneUboOffset = RB_GetPreviousBoneUboOffset((CRenderableSurface*)drawSurf->surface);
@@ -1348,8 +1348,6 @@ static void RB_SubmitDrawSurfs(
 			rb_surfaceTable[*drawSurf->surface](drawSurf->surface);
 			continue;
 		}
-
-		oldSort = drawSurf->sort;
 
 		//
 		// change the tess parameters if needed
@@ -1374,6 +1372,7 @@ static void RB_SubmitDrawSurfs(
 			oldDlighted = dlighted;
 			oldPostRender = postRender;
 			oldCubemapIndex = cubemapIndex;
+			tess.dlightBits = dlighted;
 		}
 
 		if ( entityNum != oldEntityNum )
@@ -1387,10 +1386,6 @@ static void RB_SubmitDrawSurfs(
 
 		if (backEnd.refractionFill != isDistortionShader)
 			continue;
-
-		// ugly hack for now...
-		// find better way to pass dlightbits
-		tess.dlightBits = drawSurf->dlightBits;
 
 		// add the triangles for this surface
 		rb_surfaceTable[*drawSurf->surface](drawSurf->surface);
@@ -2047,9 +2042,10 @@ static const void *RB_PrefilterEnvMap(const void *data) {
 
 	vec3_t directLight, ambientLight, direction;
 	R_LightForPoint(cmd->cubemap->origin, ambientLight, directLight, direction);
-	VectorScale(directLight, 1.0f / 255.0f, directLight);
+	VectorScale(directLight, 1.0f / 255.0f / r_directedScale->value, directLight);
+	VectorScale(ambientLight, 1.0f / 255.0f / r_ambientScale->value, ambientLight);
 	const vec3_t lumaVec = { 0.2126f, 0.7152f, 0.0722f };
-	float maxLuma = MAX(0.0001f, DotProduct(directLight, lumaVec));
+	float maxLuma = MAX(0.0001f, MAX(DotProduct(directLight, lumaVec), DotProduct(ambientLight, lumaVec)));
 
 	for (int level = 0; level <= CUBE_MAP_ROUGHNESS_MIPS; level++)
 	{
@@ -2527,7 +2523,7 @@ static void ComputeDeformValues(
 			deformParams0[0] = 0.0f;
 			deformParams0[1] = ds->bulgeHeight; // amplitude
 			deformParams0[2] = ds->bulgeWidth;  // phase
-			deformParams0[3] = ds->bulgeSpeed;  // frequency
+			deformParams0[3] = ds->bulgeSpeed * 0.1f;  // frequency
 			deformParams1[0] = 0.0f;
 			deformParams1[1] = 0.0f;
 			deformParams1[2] = 0.0f;
@@ -3150,6 +3146,8 @@ const void *RB_PostProcess(const void *data)
 		}
 	}
 
+	float exposure = r_cameraExposure->value + tr.overbrightBits;
+
 	if (srcFbo)
 	{
 		if (r_hdr->integer && (r_toneMap->integer || r_forceToneMap->integer))
@@ -3165,7 +3163,7 @@ const void *RB_PostProcess(const void *data)
 			GL_BindToTMU(tr.renderImage, 0);
 			GL_BindToTMU(tr.smaaBlendImage, 1);
 			GL_BindToTMU(tr.velocityImage, 2);
-			if (r_cameraExposure->value == 0.0f)
+			if (exposure == 0.0f)
 			{
 				GLSL_SetUniformVec4(&tr.smaaResolveShader, UNIFORM_COLOR, colorWhite);
 			}
@@ -3174,13 +3172,13 @@ const void *RB_PostProcess(const void *data)
 				vec4_t color;
 				color[0] =
 				color[1] =
-				color[2] = pow(2, r_cameraExposure->value);
+				color[2] = pow(2, exposure);
 				color[3] = 1.0f;
 				GLSL_SetUniformVec4(&tr.smaaResolveShader, UNIFORM_COLOR, color);
 			}
 			qglDrawArrays(GL_TRIANGLES, 0, 3);
 		}
-		else if (r_cameraExposure->value == 0.0f)
+		else if (exposure == 0.0f)
 		{
 			FBO_FastBlit(srcFbo, srcBox, NULL, dstBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		}
@@ -3190,7 +3188,7 @@ const void *RB_PostProcess(const void *data)
 
 			color[0] =
 			color[1] =
-			color[2] = pow(2, r_cameraExposure->value);
+			color[2] = pow(2, exposure);
 			color[3] = 1.0f;
 
 			FBO_FastBlitFromTexture(srcFbo->colorImage[0], NULL, dstBox, color, 0);
@@ -3250,7 +3248,11 @@ const void *RB_PostProcess(const void *data)
 	{
 		// Composite the glow/bloom texture
 		int blendFunc = 0;
-		vec4_t color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		vec4_t color;
+		color[0] =
+		color[1] =
+		color[2] = pow(2, exposure);
+		color[3] = 1.0f;
 
 		if ( r_dynamicGlow->integer == 2 )
 		{
