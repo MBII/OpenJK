@@ -467,7 +467,7 @@ static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs ) {
 						}
 						color[3] = 1.0f;
 
-						R_ColorShiftLightingFloats(color, color, 1.0f / 255.0f);
+						R_ColorShiftLightingFloats(color, color, 1.0f / 255.0f, true);
 
 						ColorToRGBA16F(color, (unsigned short *)(&image[j * 8]));
 					}
@@ -934,7 +934,7 @@ static void ParseFace( const world_t *worldData, dsurface_t *ds, drawVert_t *ver
 			}
 			color[3] = verts[i].color[j][3] / 255.0f;
 
-			R_ColorShiftLightingFloats( color, cv->verts[i].vertexColors[j], scale, hdrVertColors != NULL );
+			R_ColorShiftLightingFloats( color, cv->verts[i].vertexColors[j], scale, hdrVertColors == NULL );
 		}
 	}
 
@@ -1083,7 +1083,7 @@ static void ParseMesh ( const world_t *worldData, dsurface_t *ds, drawVert_t *ve
 			}
 			color[3] = verts[i].color[j][3] / 255.0f;
 
-			R_ColorShiftLightingFloats( color, points[i].vertexColors[j], scale, hdrVertColors != NULL );
+			R_ColorShiftLightingFloats( color, points[i].vertexColors[j], scale, hdrVertColors == NULL );
 		}
 	}
 
@@ -1213,7 +1213,7 @@ static void ParseTriSurf( const world_t *worldData, dsurface_t *ds, drawVert_t *
 			}
 			color[3] = verts[i].color[j][3] / 255.0f;
 
-			R_ColorShiftLightingFloats( color, cv->verts[i].vertexColors[j], scale, hdrVertColors != NULL );
+			R_ColorShiftLightingFloats( color, cv->verts[i].vertexColors[j], scale, hdrVertColors == NULL );
 		}
 	}
 
@@ -3378,7 +3378,6 @@ static void R_MergeLeafSurfaces(world_t *worldData)
 	int numMergedSurfaces;
 	int numUnmergedSurfaces;
 	VBO_t *vbo;
-	IBO_t *ibo;
 
 	msurface_t *mergedSurf;
 
@@ -3600,8 +3599,6 @@ static void R_MergeLeafSurfaces(world_t *worldData)
 		}
 
 		// create ibo
-		ibo = tr.ibos[tr.numIBOs++] = (IBO_t*)ri.Hunk_Alloc(sizeof(*ibo), h_low);
-		memset(ibo, 0, sizeof(*ibo));
 		numIboIndexes = 0;
 
 		// allocate indexes
@@ -3629,7 +3626,6 @@ static void R_MergeLeafSurfaces(world_t *worldData)
 				*outIboIndexes++ = bspSurf->indexes[k] + bspSurf->firstVert;
 				numIboIndexes++;
 			}
-			break;
 		}
 
 		vboSurf = (srfBspSurface_t *)ri.Hunk_Alloc(sizeof(*vboSurf), h_low);
@@ -3637,7 +3633,6 @@ static void R_MergeLeafSurfaces(world_t *worldData)
 		vboSurf->surfaceType = SF_VBO_MESH;
 
 		vboSurf->vbo = vbo;
-		vboSurf->ibo = ibo;
 
 		vboSurf->numIndexes = numIndexes;
 		vboSurf->numVerts = numVerts;
@@ -3664,14 +3659,11 @@ static void R_MergeLeafSurfaces(world_t *worldData)
 		mergedSurf->cubemapIndex  = surf1->cubemapIndex;
 		mergedSurf->shader        = surf1->shader;
 
-		// finish up the ibo
-		qglGenBuffers(1, &ibo->indexesVBO);
-
-		R_BindIBO(ibo);
-		qglBufferData(GL_ELEMENT_ARRAY_BUFFER, numIboIndexes * sizeof(*iboIndexes), iboIndexes, GL_STATIC_DRAW);
-		R_BindNullIBO();
-
-		GL_CheckErrors();
+		vboSurf->ibo = R_CreateIBO(
+			(byte *)iboIndexes,
+			numIboIndexes * sizeof(glIndex_t),
+			VBO_USAGE_STATIC,
+			va("Merged_%i", i) );
 
    		Z_Free(iboIndexes);
 
